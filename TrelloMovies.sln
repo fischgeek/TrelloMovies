@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharedLibrary", "..\SharedL
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrelloClassLibrary", "..\Krissy\TrelloClassLibrary\TrelloClassLibrary.csproj", "{DD54CB8F-EC87-4AC4-8540-6F0F5F2F3389}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TheMovieDBClassLibrary", "TheMovieDBClassLibrary\TheMovieDBClassLibrary.csproj", "{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,14 @@ Global
 		{DD54CB8F-EC87-4AC4-8540-6F0F5F2F3389}.Dev2|Any CPU.Build.0 = Debug|Any CPU
 		{DD54CB8F-EC87-4AC4-8540-6F0F5F2F3389}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD54CB8F-EC87-4AC4-8540-6F0F5F2F3389}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Dev|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Dev|Any CPU.Build.0 = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Dev2|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Dev2|Any CPU.Build.0 = Debug|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB7DE94B-F2F7-4D79-8A2D-2CE239803459}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

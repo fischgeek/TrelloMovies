@@ -51,8 +51,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MovieOps.cs" />
-    <Compile Include="MovieResult.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -69,6 +67,10 @@
     <ProjectReference Include="..\..\SharedLibrary\SharedLibrary.csproj">
       <Project>{3467f34e-fe77-461a-88c7-af7c1f1c0619}</Project>
       <Name>SharedLibrary</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TheMovieDBClassLibrary\TheMovieDBClassLibrary.csproj">
+      <Project>{eb7de94b-f2f7-4d79-8a2d-2ce239803459}</Project>
+      <Name>TheMovieDBClassLibrary</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
