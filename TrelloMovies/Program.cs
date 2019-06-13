@@ -13,6 +13,10 @@ using System.Configuration;
 
 namespace TrelloMovies
 {
+    // todo extract movie methods into a class
+    // todo fix case of card (title case)
+    // todo add ability to edit a title
+    // todo add ability to add a format label to a movie
     class Program
     {
         private static string movieApiKey = ConfigurationManager.AppSettings["movie-api-key"];
@@ -31,6 +35,8 @@ namespace TrelloMovies
             }
         }
         public static List<Card> allMovies = new List<Card>();
+
+        // todo change verbage from "mode" to "menu"
         public static Mode mode = Mode.Normal;
         static void Main(string[] args)
         {
@@ -357,10 +363,10 @@ namespace TrelloMovies
         {
             mode = Mode.Normal;
             ct("TRELLO MOVIES");
-            cl("1  - View movies");
-            cl("2  - Update a movie description");
-            cl("3  - Update a movie with a poster");
-            cl("4  - Add a movie");
+            cl("1 - View movies");
+            cl("2 - Update a movie description");
+            cl("3 - Update a movie with a poster");
+            cl("4 - Add a movie");
             bo();
         }
         private static void SwitchToBulkOperations()

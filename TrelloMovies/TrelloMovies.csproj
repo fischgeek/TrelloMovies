@@ -61,5 +61,15 @@
     <None Include="appsettings.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Krissy\TrelloClassLibrary\TrelloClassLibrary.csproj">
+      <Project>{dd54cb8f-ec87-4ac4-8540-6f0f5f2f3389}</Project>
+      <Name>TrelloClassLibrary</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\SharedLibrary\SharedLibrary.csproj">
+      <Project>{3467f34e-fe77-461a-88c7-af7c1f1c0619}</Project>
+      <Name>SharedLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
