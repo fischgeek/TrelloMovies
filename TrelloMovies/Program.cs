@@ -5,31 +5,42 @@ using TrelloClassLibrary;
 using static SharedLibrary.ConsoleShortcuts;
 using System.Configuration;
 using TheMovieDBClassLibrary;
+using System.IO;
+using SharedLibrary;
+using Newtonsoft.Json;
+using System.Globalization;
 
 namespace TrelloMovies
 {
-    // todo extract movie methods into a class
-    // todo fix case of card (title case)
     // todo add ability to edit a title
     // todo add ability to add a format label to a movie
     class Program
     {
-        private static string trelloApiKey = ConfigurationManager.AppSettings["trello-key"];
-        private static string trelloApiToken = ConfigurationManager.AppSettings["trello-token"];
-        private static string movieApiKey = ConfigurationManager.AppSettings["movie-api-key"];
-        private static string fischflicks = ConfigurationManager.AppSettings["target-board-id"];
-        private static string moviesList = ConfigurationManager.AppSettings["target-list-id"];
+        private static string AppName = ConfigurationManager.AppSettings["app-name"];
+        private static string appdata = Environment.GetEnvironmentVariable("AppData");
         private static MovieBase mb = MovieBase.Instance;
         private static TrelloBase tb = TrelloBase.Instance;
-        public static List<Card> allMovies = new List<Card>();
-
-        // todo change verbage from "mode" to "menu"
+        private static List<Card> allMovies = new List<Card>();
+        private static Config config = new Config();
         public static Mode mode = Mode.Normal;
+        private static string projectDir
+        {
+            get {
+                return Path.Combine(appdata, AppName);
+            }
+        }
+        private static string configFile
+        {
+            get {
+                return Path.Combine(appdata, $@"{AppName}\settings.json");
+            }
+        }
         static void Main(string[] args)
         {
-            mb.Init(movieApiKey);
-            tb.Init(trelloApiKey, trelloApiToken);
-            ListMovies(moviesList, true);
+            LoadConfig();
+            mb.Init(config.theMovieDBApiKey);
+            tb.Init(config.trelloApiKey, config.trelloApiTok);
+            ListMovies(config.targetListId, true);
             while (true) {
                 switch (mode) {
                     case Mode.Normal:
@@ -39,6 +50,7 @@ namespace TrelloMovies
                         HandleBulkOperations();
                         break;
                     case Mode.Config:
+                        HandleConfigOperations();
                         break;
                     case Mode.Debug:
                         HandleDebugOperations();
@@ -58,23 +70,20 @@ namespace TrelloMovies
                 switch (normalOps) {
                     case NormalOperations.AddMovie:
                         AddMovie();
-                        rl();
                         break;
                     case NormalOperations.ViewMovies:
-                        ListMovies(moviesList);
-                        rl();
+                        ListMovies(config.targetListId);
                         break;
                     case NormalOperations.UpdateDescription:
                         UpdateMovieDescription();
-                        rl();
                         break;
                     case NormalOperations.UpdatePoster:
                         UpdateMovieWithPoster();
-                        rl();
                         break;
                     default:
                         break;
                 }
+                rl();
             }
         }
         private static void HandleBulkOperations()
@@ -87,15 +96,14 @@ namespace TrelloMovies
                 switch (bulkOps) {
                     case BulkOperations.UpdateAllDescriptions:
                         UpdateAllDescriptions();
-                        rl();
                         break;
                     case BulkOperations.UpdateAllPosters:
                         UpdateAllPosters();
-                        rl();
                         break;
                     default:
                         break;
                 }
+                rl();
             }
         }
         private static void HandleDebugOperations()
@@ -107,18 +115,15 @@ namespace TrelloMovies
             if (Enum.TryParse(cmd, out debugOps)) {
                 switch (debugOps) {
                     case DebugOperations.ViewBoard:
-                        cl(fischflicks);
-                        rl();
+                        cl(config.targetBoardId);
                         break;
                     case DebugOperations.ViewLists:
-                        ListLists(fischflicks);
-                        rl();
+                        ListLists(config.targetBoardId);
                         break;
                     case DebugOperations.ViewCards:
                         break;
                     case DebugOperations.ForceRequery:
                         ForceRequery();
-                        rl();
                         break;
                     case DebugOperations.ShowAllWithNoDescription:
                         foreach (var m in allMovies) {
@@ -126,11 +131,40 @@ namespace TrelloMovies
                                 cl($"{m.name}");
                             }
                         }
-                        rl();
                         break;
                     default:
                         break;
                 }
+                rl();
+            }
+        }
+        private static void HandleConfigOperations()
+        {
+            SwitchToConfigOperations();
+            var cmd = rl();
+            cmd = ProcessCharOptions(cmd);
+            ConfigOperations configOps;
+            if (Enum.TryParse(cmd, out configOps)) {
+                switch (configOps) {
+                    case ConfigOperations.SetTrelloAPIKey:
+                        SetTrelloAPIKey();
+                        break;
+                    case ConfigOperations.SetTrelloAPIToken:
+                        SetTrelloAPIToken();
+                        break;
+                    case ConfigOperations.SetTargetBoardID:
+                        SetTrelloBoardId();
+                        break;
+                    case ConfigOperations.SetTargetListID:
+                        SetTrelloListId();
+                        break;
+                    case ConfigOperations.SetTheMoveDBAPIKey:
+                        SetTheMovieDBAPIKey();
+                        break;
+                    default:
+                        break;
+                }
+                rl();
             }
         }
         private static void PromptOperationSwitch()
@@ -168,8 +202,7 @@ namespace TrelloMovies
                 br();
                 cl(desc);
                 br();
-                cl("Would you like to update the movie with this description?");
-                var res = rl();
+                var res = rl("Would you like to update the movie with this description?");
                 if (res == "yes" || res == "y") {
                     tb.UpdateCardDescription(movie.id, desc);
                     cl("Done.");
@@ -179,18 +212,20 @@ namespace TrelloMovies
         private static void UpdateMovieWithPoster()
         {
             Card card = FindMovieCardByTitle();
+            cl("Retrieving movie poster...");
             if (tb.GetAttachments(card.id).DataList.Count() == 0) {
                 var url = mb.GetMoviePosterUrl(card.name);
+                cl("Updating movie poster...");
                 tb.AddAttachment(card.id, url);
             } else {
                 cl("This card already has an attachment.");
             }
+            cl("Done.");
         }
         private static Card FindMovieCardByTitle()
         {
             Card movie = null;
-            cw("Movie title: ");
-            var title = rl();
+            var title = rl("Movie title");
             var movies = allMovies.Where(x => title.Contains(x.name.ToLower())).ToArray();
             movie = null;
             if (movies.Count() == 0) {
@@ -213,7 +248,7 @@ namespace TrelloMovies
             cw("Name of the move: ");
             var name = rl();
             cl("Adding movie card...");
-            var newCardId = tb.AddCard(new Card() { name = name }, moviesList);
+            var newCardId = tb.AddCard(new Card() { name = name.ToTitleCase() }, config.targetListId);
             cl("Retrieving movie description...");
             var desc = mb.GetMovieDescription(name);
             cl("Retrieving movie poster...");
@@ -229,8 +264,7 @@ namespace TrelloMovies
         #region Bulk
         private static void UpdateAllDescriptions()
         {
-            cw("Are you sure?");
-            var confirm = rl();
+            var confirm = rl("Are you sure?");
             if (confirm == "yes" || confirm == "y") {
                 int index = 0;
                 foreach (var m in allMovies) {
@@ -252,8 +286,7 @@ namespace TrelloMovies
         }
         private static void UpdateAllPosters()
         {
-            cw("Are you sure?");
-            var confirm = rl();
+            var confirm = rl("Are you sure?");
             if (confirm == "yes" || confirm == "y") {
                 int index = 0;
                 foreach (var m in allMovies) {
@@ -275,6 +308,132 @@ namespace TrelloMovies
         }
         #endregion
 
+        #region Config
+        private static void SetTrelloAPIKey()
+        {
+            cl($"Current Trello API Key: {config.trelloApiKey}");
+            var newApiKey = rl("Enter your Trello API Key");
+            if (!newApiKey.JFIsNull() && newApiKey != config.trelloApiKey) {
+                config.trelloApiKey = newApiKey;
+                TrelloBase.Instance.Init(config.trelloApiKey, config.trelloApiTok);
+                SaveConfig();
+            }
+        }
+        private static void SetTrelloAPIToken()
+        {
+            cl($"Current Trello API Token: {config.trelloApiTok}");
+            var newApiTok = rl("Enter your Trello API Token");
+            if (!newApiTok.JFIsNull() && newApiTok != config.trelloApiTok) {
+                config.trelloApiTok = newApiTok;
+                TrelloBase.Instance.Init(config.trelloApiKey, config.trelloApiTok);
+                SaveConfig();
+            }
+        }
+        private static void SetTrelloBoardId()
+        {
+            cl($"Current board ID: {config.targetBoardId}");
+            var boards = TrelloBase.Instance.GetBoards().DataList;
+            var index = 1;
+            foreach (var b in boards) {
+                cl($"[{index}] {b.name}");
+                index++;
+            }
+            var boardSelection = rl("Enter a number for a Board from above where you store your movie collection").Trim();
+            int boardPos;
+            if (Int32.TryParse(boardSelection, out boardPos)) {
+                var newBoardId = boards[boardPos - 1].id;
+                cl($"You've selected board {boards[boardPos - 1].name}");
+                if (newBoardId != config.targetBoardId) {
+                    config.targetBoardId = newBoardId;
+                }
+                SaveConfig();
+                cl("Done.");
+            }
+        }
+        private static void SetTrelloListId()
+        {
+            if (config.targetBoardId.JFIsNull()) {
+                cl("Your target Board ID is not set.");
+            } else {
+                cl($"Current List ID: {config.targetListId}");
+                var lists = TrelloBase.Instance.GetLists(config.targetBoardId).DataList;
+                var index = 1;
+                foreach (var l in lists) {
+                    cl($"[{index}] {l.name}");
+                    index++;
+                }
+                var listSelection = rl("Enter a number for a List from above where you store your movie collection on the board").Trim();
+                int listPos;
+                if (Int32.TryParse(listSelection, out listPos)) {
+                    var newListId = lists[listPos - 1].id;
+                    cl($"You've selected list {lists[listPos - 1].name}");
+                    if (newListId != config.targetListId) {
+                        config.targetListId = newListId;
+                    }
+                    SaveConfig();
+                    cl("Done.");
+                }
+            }
+        }
+        private static void SetTheMovieDBAPIKey()
+        {
+            cl($"Current TheMovieDB API Key: {config.theMovieDBApiKey}");
+            var newApiKey = rl("Enter your TheMovieDB API Key");
+            if (!newApiKey.JFIsNull() && newApiKey != config.theMovieDBApiKey) {
+                config.theMovieDBApiKey = newApiKey;
+                MovieBase.Instance.Init(config.theMovieDBApiKey);
+                SaveConfig();
+            }
+        }
+        private static void LoadConfig()
+        {
+            var errors = false;
+            if (!File.Exists(configFile)) {
+                cl("Unable to load the config file.");
+                errors = true;
+            } else {
+                config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(configFile));
+            }
+            if (config.trelloApiKey.JFIsNull()) {
+                cl("Trello API Key not configured.");
+                errors = true;
+            }
+            if (config.trelloApiTok.JFIsNull()) {
+                cl("Trello API Token not configured.");
+                errors = true;
+            }
+            if (config.targetBoardId.JFIsNull()) {
+                cl("Trello Board ID is not configured.");
+                errors = true;
+            }
+            if (config.targetListId.JFIsNull()) {
+                cl("Trello List ID is not configured.");
+                errors = true;
+            }
+            if (config.theMovieDBApiKey.JFIsNull()) {
+                cl("The TheMovieDB API Key is not configured.");
+                errors = true;
+            }
+            if (errors) {
+                rl();
+            }
+        }
+        private static void SaveConfig()
+        {
+            if (!Directory.Exists(projectDir)) {
+                Directory.CreateDirectory(projectDir);
+            }
+            var settings = JsonConvert.SerializeObject(config);
+            try {
+                File.WriteAllText(configFile, settings);
+                cl("Settings file saved successfully.");
+            } catch (Exception ex) {
+                cl("There was an issue saving the settings file.");
+                cl(ex.Message);
+            }
+        }
+        #endregion
+
         #region Debug
         public static void ListLists(string boardId)
         {
@@ -288,28 +447,30 @@ namespace TrelloMovies
         {
             var localListEmpty = allMovies.Count() == 0;
             var movies = allMovies.Count() == 0 ? tb.GetCards(listId).DataList : allMovies;
-            foreach (var m in movies) {
-                if (!silent) {
-                    if (includeIds) {
-                        cl($"{m.id} -- {m.name}");
-                    } else {
-                        cl(m.name);
+            if (movies != null) {
+                foreach (var m in movies) {
+                    if (!silent) {
+                        if (includeIds) {
+                            cl($"{m.id} -- {m.name}");
+                        } else {
+                            cl(m.name);
+                        }
+                        if (includeDesc) {
+                            br();
+                            cl(m.desc);
+                            br();
+                        }
                     }
-                    if (includeDesc) {
-                        br();
-                        cl(m.desc);
-                        br();
+                    if (localListEmpty) {
+                        allMovies.Add(m);
                     }
-                }
-                if (localListEmpty) {
-                    allMovies.Add(m);
                 }
             }
         }
         private static void ForceRequery()
         {
             allMovies.Clear();
-            ListMovies(moviesList);
+            ListMovies(config.targetListId);
         }
         #endregion
 
@@ -337,7 +498,9 @@ namespace TrelloMovies
             ct("TRELLO CONFIG OPERATIONS");
             cl("1 - Set Trello API Key");
             cl("2 - Set Trello API Token");
-            cl("3 - Set The Movie DB API Key");
+            cl("3 - Set the Trello Board ID");
+            cl("4 - Set the Trello List ID");
+            cl("5 - Set TheMovieDB API Key");
             bo();
         }
         private static void SwitchToDebugOperations()
@@ -345,7 +508,7 @@ namespace TrelloMovies
             mode = Mode.Debug;
             ct("TRELLO DEBUG OPERATIONS");
             int i = 1;
-            foreach(var e in Enum.GetNames(typeof(DebugOperations))) {
+            foreach (var e in Enum.GetNames(typeof(DebugOperations))) {
                 cl($"{i} - {e}");
                 i++;
             }
@@ -408,5 +571,14 @@ namespace TrelloMovies
     {
         UpdateAllDescriptions = 1,
         UpdateAllPosters = 2
+    }
+
+    public enum ConfigOperations
+    {
+        SetTrelloAPIKey = 1,
+        SetTrelloAPIToken = 2,
+        SetTargetBoardID = 3,
+        SetTargetListID = 4,
+        SetTheMoveDBAPIKey = 5
     }
 }
